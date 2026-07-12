@@ -1,6 +1,13 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005/api';
+let baseApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5005/api';
+
+// Auto-append '/api' suffix if missing in environment variables
+if (baseApiUrl && !baseApiUrl.endsWith('/api') && !baseApiUrl.endsWith('/api/')) {
+  baseApiUrl = baseApiUrl.replace(/\/$/, '') + '/api';
+}
+
+const API_BASE_URL = baseApiUrl;
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

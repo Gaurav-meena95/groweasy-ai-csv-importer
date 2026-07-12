@@ -23,7 +23,8 @@ const errorMiddleware = require('./middleware/error.middleware');
 const { sendError } = require('./utils/response');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+// Force server to port 5005 if it defaults to 3000 to avoid conflicts with Next.js
+const PORT = process.env.PORT && process.env.PORT !== '3000' ? process.env.PORT : 5005;
 
 // Connect to MongoDB
 connectDB();

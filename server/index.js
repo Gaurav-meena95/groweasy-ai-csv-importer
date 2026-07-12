@@ -63,6 +63,14 @@ app.use('/api', apiLimiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Welcome root endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Welcome to the GrowEasy CSV Importer Backend API. Health checks are available at /api/health'
+  });
+});
+
 // Mount API routes
 app.use('/api', routes);
 

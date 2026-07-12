@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import UploadCard from '../components/upload/UploadCard';
 import SummaryCards from '../components/preview/SummaryCards';
 import PreviewTable from '../components/preview/PreviewTable';
@@ -10,7 +10,7 @@ import ResultTable from '../components/preview/ResultTable';
 import SkippedSection from '../components/preview/SkippedSection';
 import { toast } from 'sonner';
 import { importCSV } from '../services/api';
-import { ArrowLeft, CheckCircle2, RefreshCw, RotateCcw, Download, Code } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, RefreshCw, RotateCcw, Download, Code, AlertTriangle } from 'lucide-react';
 
 const CRM_FIELDS = [
   { key: 'created_at', label: 'Created At' },
@@ -35,12 +35,37 @@ export default function HomePage() {
   const [fileObject, setFileObject] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load state from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedPreview = localStorage.getItem('groweasy_preview_data');
+      const savedResult = localStorage.getItem('groweasy_import_result');
+      
+      if (savedPreview) {
+        setPreviewData(JSON.parse(savedPreview));
+      }
+      if (savedResult) {
+        setImportResult(JSON.parse(savedResult));
+      }
+    } catch (error) {
+      console.error('[Session Storage Load Failed]:', error);
+    }
+    setIsLoaded(true);
+  }, []);
 
   // Triggered when /upload succeeds
   const handleUploadSuccess = (data, file) => {
     setPreviewData(data);
     setFileObject(file);
     setImportResult(null);
+    try {
+      localStorage.setItem('groweasy_preview_data', JSON.stringify(data));
+      localStorage.removeItem('groweasy_import_result');
+    } catch (error) {
+      console.error('[Storage Save Error]:', error);
+    }
   };
 
   // Reset page state to return to upload screen
@@ -48,6 +73,12 @@ export default function HomePage() {
     setPreviewData(null);
     setFileObject(null);
     setImportResult(null);
+    try {
+      localStorage.removeItem('groweasy_preview_data');
+      localStorage.removeItem('groweasy_import_result');
+    } catch (error) {
+      console.error('[Storage Clear Error]:', error);
+    }
   };
 
   // Reset workflow entirely (Import Again / Start Over)
@@ -55,12 +86,18 @@ export default function HomePage() {
     setPreviewData(null);
     setFileObject(null);
     setImportResult(null);
+    try {
+      localStorage.removeItem('groweasy_preview_data');
+      localStorage.removeItem('groweasy_import_result');
+    } catch (error) {
+      console.error('[Storage Clear Error]:', error);
+    }
   };
 
   // Triggered when clicking "Confirm Import"
   const handleConfirmImport = async () => {
     if (!fileObject) {
-      toast.error('No file ready for import. Upload again.');
+      toast.error('File session expired. Please re-upload the CSV file to confirm import.');
       return;
     }
 
@@ -82,8 +119,14 @@ export default function HomePage() {
           `Import Complete! ${successCount} leads processed. (${failedCount} failed, ${skippedCount} skipped)`
         );
 
-        // Save result to display the extraction dashboard
+        // Save result and clear preview in state and localStorage
         setImportResult(response.data);
+        try {
+          localStorage.setItem('groweasy_import_result', JSON.stringify(response.data));
+          localStorage.removeItem('groweasy_preview_data');
+        } catch (error) {
+          console.error('[Storage Save Error]:', error);
+        }
       } else {
         throw new Error(response.message || 'Import failed.');
       }
@@ -143,6 +186,18 @@ export default function HomePage() {
     URL.revokeObjectURL(url);
     toast.success('CSV file downloaded.');
   };
+
+  // Avoid layout shifts during mounting/loading cache
+  if (!isLoaded) {
+    return (
+      <div className="mx-auto max-w-7xl w-full px-4 py-8 sm:px-6 lg:px-8 flex-1 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-slate-500 text-sm">
+          <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
+          Loading workspace state...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-7xl w-full px-4 py-8 sm:px-6 lg:px-8 flex-1 flex flex-col gap-8">
@@ -219,13 +274,24 @@ export default function HomePage() {
               Upload different file
             </button>
 
-            <button
-              onClick={handleConfirmImport}
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg shadow-sm transition-colors cursor-pointer animate-pulse"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              Confirm Import
-            </button>
+            <div className="flex items-center gap-4 flex-wrap">
+              {/* Informative Warning for refreshed sessions */}
+              {previewData && !fileObject && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg font-medium shadow-sm">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                  Session expired. Re-upload file to run import.
+                </div>
+              )}
+
+              <button
+                onClick={handleConfirmImport}
+                disabled={!fileObject}
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-lg shadow-sm transition-colors cursor-pointer"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Confirm Import
+              </button>
+            </div>
           </div>
 
           {/* Metrics Summary Blocks */}

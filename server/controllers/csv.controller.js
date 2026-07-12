@@ -18,6 +18,10 @@ const uploadAndPreview = async (req, res, next) => {
 
     const result = await csvService.parseCSV(req.file.path, limit);
 
+    if (result.totalRecords === 0 && result.headers.length === 0) {
+      return sendError(res, 'The uploaded CSV file is empty or invalid.', null, 400);
+    }
+
     return sendSuccess(res, 'CSV file parsed successfully.', result, 200);
   } catch (error) {
     next(error);

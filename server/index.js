@@ -6,6 +6,17 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
 const logger = require('./utils/logger');
+
+// Validate critical environment variables
+if (!process.env.MONGO_URI) {
+  logger.error('CRITICAL ERROR: MONGO_URI environment variable is not defined.');
+  process.exit(1);
+}
+if (!process.env.GEMINI_API_KEY) {
+  logger.error('CRITICAL ERROR: GEMINI_API_KEY environment variable is not defined.');
+  process.exit(1);
+}
+
 const connectDB = require('./config/db');
 const routes = require('./routes');
 const errorMiddleware = require('./middleware/error.middleware');

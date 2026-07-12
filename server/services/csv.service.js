@@ -73,6 +73,7 @@ const hasEmailOrPhone = (row) => {
 const parseCSV = (filePath, limit = 100) => {
   return new Promise((resolve, reject) => {
     const previewRows = [];
+    const skippedRows = [];
     let headers = [];
     let totalRecords = 0;
     let skippedRecords = 0;
@@ -102,6 +103,7 @@ const parseCSV = (filePath, limit = 100) => {
       // 2. Skip records with neither email nor mobile/phone number
       if (!hasEmailOrPhone(row)) {
         skippedRecords++;
+        skippedRows.push(row);
         return;
       }
 
@@ -126,6 +128,7 @@ const parseCSV = (filePath, limit = 100) => {
         previewRows,
         totalRecords,
         skippedRecords,
+        skippedRows,
         previewCount: previewRows.length
       });
     });
